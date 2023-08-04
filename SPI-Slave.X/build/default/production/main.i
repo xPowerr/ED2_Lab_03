@@ -2807,9 +2807,11 @@ int map_adc_volt(int value, int inputmin, int inputmax, int outmin, int outmax);
 
 
 
+unsigned char var;
+unsigned char voltaje1 = 0;
+unsigned char contador = 0;
+unsigned char bandera = 0;
 
-uint8_t temporal = 0;
-int adc_var = 0;
 
 
 void setup(void);
@@ -2822,25 +2824,48 @@ void main(void) {
 
     while(1){
 
-       _delay((unsigned long)((5)*(4000000/4000.0)));
 
        if (ADCON0bits.GO == 0) {
             ADCON0bits.GO = 1;
-            _delay((unsigned long)((50)*(4000000/4000.0)));
+
         }
     }
-    return;
 }
 
 
 void __attribute__((picinterrupt(("")))) isr(void){
    if (PIR1bits.ADIF == 1){
-        adc_var = adc_read();
+
+        voltaje1 = adc_read();
+        adc_change_channel(0);
         PIR1bits.ADIF = 0;
     }
-    if(SSPIF == 1){
-        spiWrite(adc_var);
-        SSPIF = 0;
+    if (PIR1bits.SSPIF == 1){
+        var = spiRead();
+        if (var == 1){
+            spiWrite(contador);
+        }
+        else if (var == 3){
+            spiWrite(voltaje1);
+        }
+        PIR1bits.SSPIF = 0;
+    }
+    if (INTCONbits.RBIF == 1){
+        INTCONbits.RBIF = 0;
+        if (PORTBbits.RB7 == 0){
+            bandera = 1;
+        }
+        if (PORTBbits.RB7 == 1 && bandera == 1){
+            contador++;
+            bandera = 0;
+        }
+        if (PORTBbits.RB6 == 0){
+            bandera = 2;
+        }
+        if (PORTBbits.RB6 == 1 && bandera == 2){
+            contador--;
+            bandera = 0;
+        }
     }
 }
 
@@ -2848,16 +2873,40 @@ void __attribute__((picinterrupt(("")))) isr(void){
 void setup(void){
 
 
-    ANSEL = 0;
+    ANSELbits.ANS0 = 1;
+    ANSELbits.ANS4 = 0;
     ANSELH = 0;
 
 
+    TRISAbits.TRISA5 = 1;
+    TRISBbits.TRISB7 = 1;
+    TRISBbits.TRISB6 = 1;
+    TRISD = 0;
+
+    PORTB = 0;
+    PORTD = 0;
+
+
+
+    OPTION_REGbits.nRBPU = 0;
+    IOCBbits.IOCB7 = 1;
+    IOCBbits.IOCB6 = 1;
+
+    WPUBbits.WPUB7 = 1;
+    WPUBbits.WPUB6 = 1;
 
     INTCONbits.GIE = 1;
     INTCONbits.PEIE = 1;
+    INTCONbits.RBIE = 1;
+    INTCONbits.RBIF = 0;
+    PIE1bits.ADIE = 1;
     PIR1bits.SSPIF = 0;
     PIE1bits.SSPIE = 1;
-    TRISAbits.TRISA5 = 1;
-    spiInit(SPI_SLAVE_SS_EN, SPI_DATA_SAMPLE_MIDDLE, SPI_CLOCK_IDLE_LOW, SPI_IDLE_2_ACTIVE);
+
+
+    OSCCONbits.IRCF = 0b110 ;
+    OSCCONbits.SCS = 1;
+
+    spiInit(SPI_SLAVE_SS_EN, SPI_DATA_SAMPLE_END, SPI_CLOCK_IDLE_LOW, SPI_IDLE_2_ACTIVE);
 
 }

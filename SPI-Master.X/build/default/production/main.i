@@ -2751,6 +2751,27 @@ extern int sprintf(char *, const char *, ...);
 extern int printf(const char *, ...);
 # 30 "main.c" 2
 
+# 1 "./LCD.h" 1
+# 63 "./LCD.h"
+void Lcd_Port(char a);
+
+void Lcd_Cmd(char a);
+
+void Lcd_Clear(void);
+
+void Lcd_Set_Cursor(char a, char b);
+
+void Lcd_Init(void);
+
+void Lcd_Write_Char(char a);
+
+void Lcd_Write_String(char *a);
+
+void Lcd_Shift_Right(void);
+
+void Lcd_Shift_Left(void);
+# 31 "main.c" 2
+
 # 1 "./SPI.h" 1
 # 17 "./SPI.h"
 typedef enum
@@ -2786,27 +2807,6 @@ void spiInit(Spi_Type, Spi_Data_Sample, Spi_Clock_Idle, Spi_Transmit_Edge);
 void spiWrite(char);
 unsigned spiDataReady();
 char spiRead();
-# 31 "main.c" 2
-
-# 1 "./LCD.h" 1
-# 63 "./LCD.h"
-void Lcd_Port(char a);
-
-void Lcd_Cmd(char a);
-
-void Lcd_Clear(void);
-
-void Lcd_Set_Cursor(char a, char b);
-
-void Lcd_Init(void);
-
-void Lcd_Write_Char(char a);
-
-void Lcd_Write_String(char *a);
-
-void Lcd_Shift_Right(void);
-
-void Lcd_Shift_Left(void);
 # 32 "main.c" 2
 
 
@@ -2815,11 +2815,27 @@ void Lcd_Shift_Left(void);
 
 
 
-int LCD_var1 = 0;
-char LCD_ADC_S1[1];
+unsigned char voltaje1;
+unsigned char voltaje2;
+unsigned char contador = 0;
+int vol1;
+int vol2;
+unsigned int unidad1;
+unsigned int decima1;
+unsigned int centesima1;
+unsigned int unidad2;
+unsigned int decima2;
+unsigned int centesima2;
+char buffer[20];
+char buffer1[20];
+char buffer2[20];
+
 
 
 void setup(void);
+int map(unsigned char value, int inputmin, int inputmax, int outmin, int outmax){
+    return ((value - inputmin)*(outmax-outmin)) / (inputmax-inputmin)+outmin;}
+
 
 
 void main(void) {
@@ -2828,26 +2844,66 @@ void main(void) {
 
     Lcd_Init();
     Lcd_Clear();
+
+    Lcd_Set_Cursor(1,7);
+    Lcd_Write_String("S2:");
+
     Lcd_Set_Cursor(1,1);
     Lcd_Write_String("S1:");
 
+    Lcd_Set_Cursor(1,14);
+    Lcd_Write_String("S3:");
+
     while(1){
-       PORTCbits.RC2 = 0;
-       _delay((unsigned long)((1)*(4000000/4000.0)));
+         PORTCbits.RC2 = 0;
+        _delay((unsigned long)((1)*(4000000/4000.0)));
 
-       spiWrite(PORTB);
-       LCD_var1 = spiRead();
+        spiWrite(1);
+        voltaje1 = spiRead();
 
-       Lcd_Set_Cursor(2,1);
-       sprintf(LCD_ADC_S1, "%03d", LCD_var1);
-       Lcd_Write_String(LCD_ADC_S1);
+        _delay((unsigned long)((1)*(4000000/4000.0)));
+        PORTCbits.RC2 = 1;
 
-       _delay((unsigned long)((1)*(4000000/4000.0)));
-       PORTCbits.RC2 = 1;
+        PORTCbits.RC2 = 0;
+        _delay((unsigned long)((1)*(4000000/4000.0)));
 
-       _delay((unsigned long)((5)*(4000000/4000.0)));
+        spiWrite(3);
+        contador = spiRead();
+
+        _delay((unsigned long)((1)*(4000000/4000.0)));
+        PORTCbits.RC2 = 1;
+
+        PORTCbits.RC1 = 0;
+        _delay((unsigned long)((1)*(4000000/4000.0)));
+
+        spiWrite(2);
+        voltaje2 = spiRead();
+
+        _delay((unsigned long)((1)*(4000000/4000.0)));
+        PORTCbits.RC1 = 1;
+
+
+        vol1 = map(voltaje1, 0, 255, 0, 100);
+        unidad1 = (vol1*5)/100;
+        decima1 = ((vol1*5)/10)%10;
+        centesima1 = (vol1*5)%10;
+        Lcd_Set_Cursor(2,1);
+        sprintf(buffer, "%d.%d%dV" , unidad1 , decima1 , centesima1 );
+        Lcd_Write_String(buffer);
+
+        vol2 = map(voltaje2, 0, 255, 0, 100);
+        unidad2 = (vol2*5)/100;
+        decima2 = ((vol2*5)/10)%10;
+        centesima2 = (vol2*5)%10;
+        Lcd_Set_Cursor(2,7);
+        sprintf(buffer1, "%d.%d%dV" , unidad2 , decima2 , centesima2 );
+        Lcd_Write_String(buffer1);
+
+        Lcd_Set_Cursor(2,14);
+        sprintf(buffer2, "%03d" , contador);
+        Lcd_Write_String(buffer2);
     }
-    return;
+
 }
 
 
@@ -2865,9 +2921,14 @@ void setup(void){
 
 
     TRISB = 0;
-    TRISC2 = 0;
+    TRISCbits.TRISC1 = 0;
+    TRISCbits.TRISC2 = 0;
     TRISD = 0;
 
+
+
+    PORTCbits.RC1 = 1;
+    PORTCbits.RC2 = 1;
 
 
     PORTA = 0;
@@ -2875,20 +2936,11 @@ void setup(void){
     PORTC = 0;
     PORTD = 0;
     PORTE = 0;
-
-
-
-
-
-
-
-    INTCONbits.GIE = 1;
-    INTCONbits.PEIE = 1;
-# 120 "main.c"
+# 181 "main.c"
     OSCCONbits.IRCF = 0b110 ;
     OSCCONbits.SCS = 1;
 
 
-    spiInit(SPI_MASTER_OSC_DIV4, SPI_DATA_SAMPLE_MIDDLE, SPI_CLOCK_IDLE_LOW, SPI_IDLE_2_ACTIVE);
+    spiInit(SPI_MASTER_OSC_DIV4, SPI_DATA_SAMPLE_END, SPI_CLOCK_IDLE_LOW, SPI_IDLE_2_ACTIVE);
 
 }

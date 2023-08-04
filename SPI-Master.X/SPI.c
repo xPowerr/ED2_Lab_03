@@ -44,7 +44,7 @@ unsigned spiDataReady() //Check whether the data is ready to read
         return 0;
 }
 
-char spiRead() //REad the received data
+char spiRead() //Read the received data
 {
     spiReceiveWait();        // wait until the all bits receive
     return(SSPBUF); // read the received data from the buffer

@@ -1,5 +1,5 @@
 /* 
- * File:  ADC_setup.h Libreria de interrupcion PORTB 
+ * File:  ADC_setup.h Libreria de interrupcion ADC 
  * Author: Gabriel Carrera 21216
  * Comments: a 
  * Revision history: a
